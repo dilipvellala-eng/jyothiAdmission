@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { ArrowLeft, ArrowRight, Save, Send } from 'lucide-react';
 import { api } from '../api/client.js';
+import { uploadFile } from "../api/upload";
 
 const initialForm = {
   admissionNo: '',
@@ -57,6 +58,30 @@ export default function AdmissionForm() {
     }, 500);
     return () => clearTimeout(timer);
   }, [form]);
+
+  const [loading, setLoading] = useState({});
+
+const handleUpload = async (e, field) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  setLoading((prev) => ({ ...prev, [field]: true }));
+
+  try {
+    const url = await uploadFile(file);
+
+    setForm((prev) => ({
+      ...prev,
+      [field]: url
+    }));
+  } catch (err) {
+    console.error(err);
+    alert("Upload failed");
+  } finally {
+    setLoading((prev) => ({ ...prev, [field]: false }));
+  }
+};
+
 
   const currentErrors = useMemo(() => validate(form, step), [form, step]);
 
@@ -171,12 +196,38 @@ export default function AdmissionForm() {
           </div>
         )}
         {step === 3 && (
-          <div className="grid gap-4 md:grid-cols-3">
-            <FileInput label="Photo" onChange={(file) => setField('photo', file)} />
-            <FileInput label="Birth Certificate" onChange={(file) => setField('birthCertificate', file)} />
-            <FileInput label="Transfer Certificate / Record Sheet" onChange={(file) => setField('transferCertificate', file)} />
-          </div>
-        )}
+  <div className="grid gap-4 md:grid-cols-3">
+
+    {/* Photo */}
+    <div>
+      <label className="label">Photo</label>
+      <input type="file" className="field" accept=".jpg,.jpeg,.png,.pdf" onChange={(e) => handleUpload(e, "photo")} />
+      {loading.photo && <p>Uploading...</p>}
+      {form.photo && <img src={form.photo} width="100" />}
+    </div>
+
+    {/* Birth Certificate */}
+    <div>
+      <label className="label">Birth Certificate</label>
+      <input type="file" className="field" accept=".jpg,.jpeg,.png,.pdf" onChange={(e) => handleUpload(e, "birthCertificate")} />
+      {loading.birthCertificate && <p>Uploading...</p>}
+      {form.birthCertificate && (
+        <a href={form.birthCertificate} target="_blank" rel="noopener noreferrer">View</a>
+      )}
+    </div>
+
+    {/* Transfer Certificate */}
+    <div>
+      <label className="label">Transfer Certificate</label>
+      <input type="file" className="field" accept=".jpg,.jpeg,.png,.pdf" onChange={(e) => handleUpload(e, "transferCertificate")} />
+      {loading.transferCertificate && <p>Uploading...</p>}
+      {form.transferCertificate && (
+        <a href={form.transferCertificate} target="_blank" rel="noopener noreferrer">View</a>
+      )}
+    </div>
+
+  </div>
+)}
         {step === 4 && (
           <div className="grid gap-4 lg:grid-cols-3">
             <Summary title="Pupil" rows={[['Name', form.fullName], ['DOB', form.dateOfBirth], ['Mother Tongue', form.motherTongue], ['Aadhaar', form.aadhaarNumber || 'N/A'], ['PEN', form.penNumber || 'N/A'], ['Child ID', form.childId || 'N/A']]} />

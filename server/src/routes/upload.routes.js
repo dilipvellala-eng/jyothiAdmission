@@ -1,37 +1,38 @@
 import express from "express";
 import { upload } from "../middleware/upload.middleware.js";
+import cloudinary from "../config/cloudinary.js";
 
 const router = express.Router();
 
-router.post("/", upload.single("file"), (req, res) => {
+router.post("/", upload.single("file"), async (req, res) => {
   try {
-    // 🔍 Debug (you can remove later)
     console.log("Uploaded file:", req.file);
 
-    // ❌ No file case
+    // ❌ No file
     if (!req.file) {
       return res.status(400).json({
         message: "No file uploaded. Please send file with key 'file'"
       });
     }
 
-    // ✅ Handle both cases (Cloudinary OR local)
-    const fileUrl =
-      req.file.path ||          // Cloudinary (most setups)
-      req.file.secure_url ||    // Cloudinary alternative
-      req.file.url ||           // fallback
-      null;
+    // ✅ Upload to Cloudinary using buffer
+    const result = await new Promise((resolve, reject) => {
+      cloudinary.uploader.upload_stream(
+        {
+          folder: "certificates",
+          resource_type: "auto"
+        },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      ).end(req.file.buffer); // 👈 IMPORTANT
+    });
 
-    if (!fileUrl) {
-      return res.status(500).json({
-        message: "File uploaded but URL not found"
-      });
-    }
-
-    // ✅ Success response
+    // ✅ Success
     res.json({
       message: "File uploaded successfully",
-      fileUrl
+      fileUrl: result.secure_url
     });
 
   } catch (error) {

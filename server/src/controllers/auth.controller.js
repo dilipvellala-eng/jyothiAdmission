@@ -13,13 +13,37 @@ function userPayload(user) {
   return { id: user._id, name: user.name, email: user.email, phone: user.phone, role: user.role };
 }
 
+// export const register = asyncHandler(async (req, res) => {
+//   const { name, email, phone, password, role = 'parent' } = req.body;
+//   const existing = await User.findOne({ email });
+//   if (existing) throw new ApiError(409, 'A user with this email already exists');
+
+//   const user = await User.create({ name, email, phone, password, role: role === 'admin' ? 'parent' : role });
+//   res.status(201).json({ token: signToken(user), user: userPayload(user) });
+// });
+
 export const register = asyncHandler(async (req, res) => {
   const { name, email, phone, password, role = 'parent' } = req.body;
+
   const existing = await User.findOne({ email });
   if (existing) throw new ApiError(409, 'A user with this email already exists');
 
-  const user = await User.create({ name, email, phone, password, role: role === 'admin' ? 'parent' : role });
-  res.status(201).json({ token: signToken(user), user: userPayload(user) });
+  // ✅ Allow only valid roles
+  const allowedRoles = ['admin', 'parent', 'staff'];
+  const userRole = allowedRoles.includes(role) ? role : 'parent';
+
+  const user = await User.create({
+    name,
+    email,
+    phone,
+    password,
+    role: userRole   // ✅ no override anymore
+  });
+
+  res.status(201).json({
+    token: signToken(user),
+    user: userPayload(user)
+  });
 });
 
 export const login = asyncHandler(async (req, res) => {

@@ -3,8 +3,14 @@ dotenv.config();
 
 import app from './app.js';
 import { connectDB } from './config/db.js';
-
+import cors from "cors";
 const port = process.env.PORT || 5000;
+
+app.use(cors({
+  origin: "https://jyothi-admission.vercel.app",
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true
+}));
 
 connectDB()
   .then(() => {

@@ -127,8 +127,13 @@ The application form captures the fields from the supplied school admission form
 - Set `NODE_ENV=production`
 - Use a strong `JWT_SECRET`
 - Set `MONGO_URI` to your production MongoDB connection string
-- Set `CLIENT_URL` for CORS
+- Set `CLIENT_URL` or comma-separated `CLIENT_URLS` for CORS
 - Configure SMTP variables for real email notifications
 - Configure SMS provider logic in `server/src/services/notification.service.js`
 - Store uploads on durable storage in production, such as S3, Azure Blob, or a mounted volume
 
+For Vercel frontend + Render backend deployment, follow:
+
+```text
+docs/VERCEL_RENDER_DEPLOYMENT.md
+```

@@ -11,7 +11,10 @@ const border = '#d6e4ea';
 const text = '#17202a';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const logoPath = path.resolve(__dirname, '../../../client/public/logo.png');
+const logoCandidates = [
+  path.resolve(__dirname, '../../public/logo.png'),
+  path.resolve(__dirname, '../../../client/public/logo.png')
+];
 
 export function buildApplicationPdf(application, writable) {
   const doc = new PDFDocument({ margin: 42, size: 'A4' });
@@ -78,7 +81,8 @@ export function buildApplicationPdf(application, writable) {
 function drawHeader(doc, application) {
   doc.rect(0, 0, doc.page.width, 122).fill(navy);
   doc.rect(0, 0, doc.page.width, 10).fill(red);
-  if (fs.existsSync(logoPath)) {
+  const logoPath = logoCandidates.find((candidate) => fs.existsSync(candidate));
+  if (logoPath) {
     doc.circle(78, 58, 31).fill('white');
     doc.image(logoPath, 48, 28, { fit: [60, 60], align: 'center', valign: 'center' });
   }

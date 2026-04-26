@@ -6,7 +6,7 @@ import { validate } from '../middleware/validate.middleware.js';
 
 const router = express.Router();
 
-router.get('/', protect, listClasses);
+router.get('/', listClasses);
 router.post('/', protect, authorize('admin'), [
   body('name').notEmpty().withMessage('Class name is required'),
   body('totalSeats').isInt({ min: 0 }).withMessage('Total seats must be zero or more')

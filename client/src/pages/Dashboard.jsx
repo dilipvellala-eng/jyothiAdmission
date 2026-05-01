@@ -36,6 +36,18 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="panel p-4">
+          <h3 className="font-semibold">Applications by Year</h3>
+          <div className="mt-4 space-y-3">
+            {(stats?.byYear || []).map((item) => (
+              <div key={item._id || 'unknown'}>
+                <div className="mb-1 flex justify-between text-sm"><span>{item._id || 'Unknown'}</span><span>{item.count}</span></div>
+                <div className="h-2 rounded-full bg-stone-100"><div className="h-2 rounded-full bg-gold" style={{ width: `${Math.min(item.count * 10, 100)}%` }} /></div>
+              </div>
+            ))}
+            {!stats?.byYear?.length && <p className="text-sm text-stone-500">No applications yet.</p>}
+          </div>
+        </div>
+        <div className="panel p-4">
           <h3 className="font-semibold">Seat Availability</h3>
           <div className="mt-4 divide-y divide-stone-100">
             {(stats?.classes || []).map((item) => (

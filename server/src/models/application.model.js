@@ -35,6 +35,7 @@ const applicationSchema = new mongoose.Schema(
   {
     applicationId: { type: String, required: true, unique: true, index: true },
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    admissionYear: { type: Number, required: true, default: () => new Date().getFullYear(), index: true },
     admissionNo: { type: String, trim: true },
     classAdmitted: { type: String, trim: true },
     dateOfAdmission: { type: Date },

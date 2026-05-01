@@ -4,7 +4,7 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 
 export const getDashboard = asyncHandler(async (req, res) => {
   const base = req.user.role === 'parent' ? { user: req.user._id } : {};
-  const [total, approved, pending, rejected, drafts, byClass, classes] = await Promise.all([
+  const [total, approved, pending, rejected, drafts, byClass, byYear, classes] = await Promise.all([
     Application.countDocuments(base),
     Application.countDocuments({ ...base, status: 'Approved' }),
     Application.countDocuments({ ...base, status: 'Pending' }),
@@ -15,8 +15,13 @@ export const getDashboard = asyncHandler(async (req, res) => {
       { $group: { _id: '$classApplyingFor', count: { $sum: 1 } } },
       { $sort: { _id: 1 } }
     ]),
+    Application.aggregate([
+      { $match: base },
+      { $group: { _id: '$admissionYear', count: { $sum: 1 } } },
+      { $sort: { _id: -1 } }
+    ]),
     ClassSeat.find({ isActive: true }).sort({ name: 1 })
   ]);
 
-  res.json({ total, approved, pending, rejected, drafts, byClass, classes });
+  res.json({ total, approved, pending, rejected, drafts, byClass, byYear, classes });
 });

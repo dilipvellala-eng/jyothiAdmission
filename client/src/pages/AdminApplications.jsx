@@ -6,7 +6,7 @@ import { Status } from './MyApplications.jsx';
 
 export default function AdminApplications() {
   const [rows, setRows] = useState([]);
-  const [filters, setFilters] = useState({ search: '', status: '' });
+  const [filters, setFilters] = useState({ search: '', status: '', admissionYear: '' });
   const [remark, setRemark] = useState('');
 
   async function load() {
@@ -38,11 +38,12 @@ export default function AdminApplications() {
   }
 
   async function exportCsv() {
-    const { data } = await api.get('/applications/export.csv', { responseType: 'blob' });
+    const params = filters.admissionYear ? { admissionYear: filters.admissionYear } : {};
+    const { data } = await api.get('/applications/export.csv', { params, responseType: 'blob' });
     const url = URL.createObjectURL(data);
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'admission-applications.csv';
+    link.download = filters.admissionYear ? `admission-applications-${filters.admissionYear}.csv` : 'admission-applications.csv';
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -56,11 +57,12 @@ export default function AdminApplications() {
         </div>
         <button className="btn-primary" onClick={exportCsv}><FileSpreadsheet size={16} /> Export CSV</button>
       </div>
-      <div className="panel grid gap-3 p-4 md:grid-cols-[1fr_200px_auto]">
+      <div className="panel grid gap-3 p-4 md:grid-cols-[1fr_160px_200px_auto]">
         <div className="relative">
           <Search className="absolute left-3 top-2.5 text-stone-400" size={17} />
           <input className="field pl-9" placeholder="Search application ID, student, phone, email" value={filters.search} onChange={(e) => setFilters({ ...filters, search: e.target.value })} />
         </div>
+        <input className="field" type="number" min="1900" max={new Date().getFullYear() + 1} placeholder="Year" value={filters.admissionYear} onChange={(e) => setFilters({ ...filters, admissionYear: e.target.value })} />
         <select className="field" value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })}>
           <option value="">All statuses</option>
           <option>Draft</option>
@@ -80,7 +82,7 @@ export default function AdminApplications() {
                   <Status value={item.status} />
                   {item.duplicateWarning && <span className="rounded bg-red-100 px-2 py-1 text-xs font-semibold text-red-700">Possible duplicate</span>}
                 </div>
-                <p className="mt-1 text-sm text-stone-500">{item.applicationId} · {item.classApplyingFor} · Parent: {item.parent?.name} ({item.parent?.phone})</p>
+                <p className="mt-1 text-sm text-stone-500">{item.applicationId} - {item.admissionYear || '-'} - {item.classApplyingFor} - Parent: {item.parent?.name} ({item.parent?.phone})</p>
               </div>
               <button className="btn-secondary" onClick={() => downloadPdf(item)}><Download size={15} /> PDF</button>
             </div>

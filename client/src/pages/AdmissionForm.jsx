@@ -5,6 +5,7 @@ import { api } from '../api/client.js';
 import { uploadFile } from "../api/upload";
 
 const initialForm = {
+  admissionYear: new Date().getFullYear(),
   admissionNo: '',
   classAdmitted: '',
   dateOfAdmission: '',
@@ -154,6 +155,7 @@ const handleUpload = async (e, field) => {
         {step === 0 && (
           <div className="grid gap-4 md:grid-cols-2">
             <Input label="Admission No." value={form.admissionNo} onChange={(value) => setField('admissionNo', value)} />
+            <Input label="Admission Year" type="number" value={form.admissionYear} error={errors.admissionYear} onChange={(value) => setField('admissionYear', value)} />
             <Input label="Class Admitted" value={form.classAdmitted} onChange={(value) => setField('classAdmitted', value)} />
             <Input label="Date of Admission" type="date" value={form.dateOfAdmission} onChange={(value) => setField('dateOfAdmission', value)} />
             <Input label="Name of the Pupil in Full with Surname" value={form.fullName} error={errors.fullName} onChange={(value) => setField('fullName', value)} />
@@ -236,7 +238,7 @@ const handleUpload = async (e, field) => {
           <div className="grid gap-4 lg:grid-cols-3">
             <Summary title="Pupil" rows={[['Name', form.fullName], ['DOB', form.dateOfBirth], ['Mother Tongue', form.motherTongue], ['Aadhaar', form.aadhaarNumber || 'N/A'], ['PEN', form.penNumber || 'N/A'], ['Child ID', form.childId || 'N/A']]} />
             <Summary title="Parent / Guardian" rows={[['Name', form.parent.name], ['Cell No.', form.parent.phone], ['Occupation', form.parent.occupation || 'N/A'], ['Mother Name', form.motherName || 'N/A']]} />
-            <Summary title="Admission" rows={[['Class Sought', form.classApplyingFor], ['Medium', form.mediumOfInstruction || 'N/A'], ['First Language', form.firstLanguage || 'N/A'], ['Second Language', form.secondLanguage || 'N/A'], ['TC Attached', form.tcRecordAttached || 'N/A']]} />
+            <Summary title="Admission" rows={[['Admission Year', form.admissionYear], ['Class Sought', form.classApplyingFor], ['Medium', form.mediumOfInstruction || 'N/A'], ['First Language', form.firstLanguage || 'N/A'], ['Second Language', form.secondLanguage || 'N/A'], ['TC Attached', form.tcRecordAttached || 'N/A']]} />
             <label className="flex items-start gap-3 rounded-md border border-stone-200 p-4 text-sm lg:col-span-3">
               <input type="checkbox" className="mt-1 h-4 w-4" checked={Boolean(form.privacyConsentAccepted)} onChange={(e) => setField('privacyConsentAccepted', e.target.checked)} />
               <span>I confirm that I am the parent or lawful guardian and consent to the school processing this admission data and uploaded documents for admission review and required school records.</span>
@@ -284,6 +286,8 @@ function Summary({ title, rows }) {
 function validate(form, step) {
   const errors = {};
   if (step === 0 || step === 4) {
+    const year = Number(form.admissionYear);
+    if (!Number.isInteger(year) || year < 1900 || year > new Date().getFullYear() + 1) errors.admissionYear = 'Admission year must be valid';
     if (!form.fullName) errors.fullName = 'Pupil name is required';
     if (!form.dateOfBirth) errors.dateOfBirth = 'Date of birth is required';
   }

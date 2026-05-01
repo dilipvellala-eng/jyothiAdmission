@@ -102,7 +102,8 @@ function drawHeader(doc, application) {
   doc.font('Helvetica');
   doc.text(`Admission No.: ${value(application.admissionNo)}`, 58, 128);
   doc.text(`Class Admitted: ${value(application.classAdmitted)}`, 230, 128);
-  doc.text(`Date of Admission: ${value(formatDate(application.dateOfAdmission))}`, 390, 128);
+  doc.text(`Admission Year: ${value(application.admissionYear)}`, 390, 128);
+  doc.text(`Date of Admission: ${value(formatDate(application.dateOfAdmission))}`, 58, 144);
   doc.y = 170;
 }
 

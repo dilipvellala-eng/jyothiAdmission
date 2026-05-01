@@ -4,6 +4,7 @@ export function applicationsToCsv(applications) {
   return stringify(
     applications.map((app) => ({
       applicationId: app.applicationId,
+      admissionYear: app.admissionYear,
       admissionNo: app.admissionNo,
       classAdmitted: app.classAdmitted,
       dateOfAdmission: app.dateOfAdmission?.toISOString().slice(0, 10) || '',

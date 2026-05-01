@@ -5,9 +5,11 @@ import { api } from '../api/client.js';
 
 export default function MyApplications() {
   const [applications, setApplications] = useState([]);
+  const [admissionYear, setAdmissionYear] = useState('');
 
   async function load() {
-    const { data } = await api.get('/applications');
+    const params = admissionYear ? { admissionYear } : {};
+    const { data } = await api.get('/applications', { params });
     setApplications(data.items);
   }
 
@@ -39,12 +41,17 @@ export default function MyApplications() {
         <h2 className="text-2xl font-bold">My Applications</h2>
         <p className="text-sm text-stone-500">Track drafts, pending applications, and admission decisions.</p>
       </div>
+      <div className="panel flex flex-wrap items-center gap-3 p-4">
+        <input className="field max-w-40" type="number" min="1900" max={new Date().getFullYear() + 1} placeholder="Year" value={admissionYear} onChange={(e) => setAdmissionYear(e.target.value)} />
+        <button className="btn-secondary" onClick={load}>Apply Filters</button>
+      </div>
       <div className="panel overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[860px] table-fixed text-left text-sm">
             <thead className="bg-stone-100 text-stone-600">
               <tr>
                 <th className="w-40 px-4 py-3">Application ID</th>
+                <th className="w-28 px-4 py-3">Year</th>
                 <th className="px-4 py-3">Name</th>
                 <th className="w-36 px-4 py-3">Class</th>
                 <th className="w-28 px-4 py-3">Status</th>
@@ -56,6 +63,7 @@ export default function MyApplications() {
               {applications.map((item) => (
                 <tr className="align-middle hover:bg-stone-50" key={item._id}>
                   <td className="px-4 py-3 font-semibold text-stone-900">{item.applicationId}</td>
+                  <td className="px-4 py-3">{item.admissionYear || '-'}</td>
                   <td className="truncate px-4 py-3" title={item.fullName}>{item.fullName}</td>
                   <td className="px-4 py-3">{item.classApplyingFor}</td>
                   <td className="px-4 py-3"><Status value={item.status} /></td>
@@ -68,7 +76,7 @@ export default function MyApplications() {
                   </td>
                 </tr>
               ))}
-              {!applications.length && <tr><td className="px-4 py-8 text-center text-stone-500" colSpan="6">No applications yet.</td></tr>}
+              {!applications.length && <tr><td className="px-4 py-8 text-center text-stone-500" colSpan="7">No applications yet.</td></tr>}
             </tbody>
           </table>
         </div>

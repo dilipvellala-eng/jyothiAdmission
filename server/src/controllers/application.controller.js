@@ -11,6 +11,7 @@ import { notifyStatusChange, notifySubmission } from '../services/notification.s
 function parsePayload(req) {
   const body = { ...req.body };
   if (typeof body.parent === 'string') body.parent = JSON.parse(body.parent);
+  body.admissionYear = normalizeAdmissionYear(body.admissionYear, body.dateOfAdmission);
   body.documents = typeof body.documents === 'object' && body.documents !== null ? body.documents : {};
   for (const field of ['photo', 'birthCertificate', 'transferCertificate']) {
     if (typeof body[field] === 'string' && body[field]) {
@@ -46,7 +47,7 @@ export const createApplication = asyncHandler(async (req, res) => {
   const application = await Application.create({
     ...payload,
     user: req.user._id,
-    applicationId: await generateApplicationId(),
+    applicationId: await generateApplicationId(payload.admissionYear),
     duplicateWarning: duplicateMatches.length > 0,
     duplicateMatches: duplicateMatches.map((item) => item._id)
   });
@@ -54,11 +55,12 @@ export const createApplication = asyncHandler(async (req, res) => {
 });
 
 export const listApplications = asyncHandler(async (req, res) => {
-  const { search, status, classApplyingFor, page = 1, limit = 20 } = req.query;
+  const { search, status, classApplyingFor, admissionYear, page = 1, limit = 20 } = req.query;
   const query = {};
   if (req.user.role === 'parent') query.user = req.user._id;
   if (status) query.status = status;
   if (classApplyingFor) query.classApplyingFor = classApplyingFor;
+  if (admissionYear) query.admissionYear = Number(admissionYear);
   if (search) query.$text = { $search: search };
 
   const skip = (Number(page) - 1) * Number(limit);
@@ -118,7 +120,7 @@ export const reviewApplication = asyncHandler(async (req, res) => {
   const application = await Application.findById(req.params.id);
   if (!application) throw new ApiError(404, 'Application not found');
 
-  if (status === 'Approved' && application.status !== 'Approved') {
+  if (status === 'Approved' && application.status !== 'Approved' && application.admissionYear === new Date().getFullYear()) {
     const classSeat = await ClassSeat.findOne({ name: application.classApplyingFor });
     if (classSeat && classSeat.filledSeats >= classSeat.totalSeats) throw new ApiError(400, 'No seats available for this class');
     if (classSeat) {
@@ -137,7 +139,9 @@ export const reviewApplication = asyncHandler(async (req, res) => {
 });
 
 export const exportApplications = asyncHandler(async (req, res) => {
-  const applications = await Application.find({ status: { $ne: 'Draft' } }).sort({ createdAt: -1 });
+  const query = { status: { $ne: 'Draft' } };
+  if (req.query.admissionYear) query.admissionYear = Number(req.query.admissionYear);
+  const applications = await Application.find(query).sort({ admissionYear: -1, createdAt: -1 });
   res.header('Content-Type', 'text/csv');
   res.attachment('admission-applications-redacted.csv');
   res.send(applicationsToCsv(applications));
@@ -152,3 +156,13 @@ export const downloadApplicationPdf = asyncHandler(async (req, res) => {
   res.attachment(`${application.applicationId}.pdf`);
   buildApplicationPdf(application, res);
 });
+
+function normalizeAdmissionYear(rawYear, rawDate) {
+  const currentYear = new Date().getFullYear();
+  const fromDate = rawDate ? new Date(rawDate).getFullYear() : currentYear;
+  const year = Number(rawYear || fromDate || currentYear);
+  if (!Number.isInteger(year) || year < 1900 || year > currentYear + 1) {
+    throw new ApiError(400, 'Admission year must be a valid year');
+  }
+  return year;
+}

@@ -22,6 +22,7 @@ const uploadFields = upload.fields([
 ]);
 
 const applicationValidation = [
+  body('admissionYear').optional().isInt({ min: 1900, max: new Date().getFullYear() + 1 }).withMessage('Admission year must be valid'),
   body('fullName').notEmpty().withMessage('Student full name is required'),
   body('dateOfBirth').isISO8601().withMessage('Valid date of birth is required'),
   body('classApplyingFor').notEmpty().withMessage('Class into which admission is sought is required')

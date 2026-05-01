@@ -17,7 +17,22 @@ export const getDashboard = asyncHandler(async (req, res) => {
     ]),
     Application.aggregate([
       { $match: base },
-      { $group: { _id: '$admissionYear', count: { $sum: 1 } } },
+      {
+        $addFields: {
+          resolvedAdmissionYear: {
+            $ifNull: [
+              '$admissionYear',
+              {
+                $ifNull: [
+                  { $year: '$dateOfAdmission' },
+                  { $year: '$createdAt' }
+                ]
+              }
+            ]
+          }
+        }
+      },
+      { $group: { _id: '$resolvedAdmissionYear', count: { $sum: 1 } } },
       { $sort: { _id: -1 } }
     ]),
     ClassSeat.find({ isActive: true }).sort({ name: 1 })

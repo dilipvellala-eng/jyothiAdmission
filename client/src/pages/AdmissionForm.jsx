@@ -35,7 +35,8 @@ const initialForm = {
   previousSchoolHistory: '',
   photo: null,
   birthCertificate: null,
-  transferCertificate: null
+  transferCertificate: null,
+  privacyConsentAccepted: false
 };
 
 const steps = ['Pupil', 'Parent', 'Academic', 'Documents', 'Review'];
@@ -43,8 +44,8 @@ const steps = ['Pupil', 'Parent', 'Academic', 'Documents', 'Review'];
 export default function AdmissionForm() {
   const [step, setStep] = useState(0);
   const [classes, setClasses] = useState([]);
-  const [form, setForm] = useState(() => normalizeDraft(JSON.parse(localStorage.getItem('admission_draft') || 'null')));
-  const [applicationId, setApplicationId] = useState(localStorage.getItem('admission_draft_id') || '');
+  const [form, setForm] = useState(() => normalizeDraft(readDraft()));
+  const [applicationId, setApplicationId] = useState(sessionStorage.getItem('admission_draft_id') || '');
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
@@ -54,7 +55,7 @@ export default function AdmissionForm() {
   useEffect(() => {
     const timer = setTimeout(() => {
       const { photo, birthCertificate, transferCertificate, ...serializable } = form;
-      localStorage.setItem('admission_draft', JSON.stringify(serializable));
+      sessionStorage.setItem('admission_draft', JSON.stringify(serializable));
     }, 500);
     return () => clearTimeout(timer);
   }, [form]);
@@ -74,8 +75,7 @@ const handleUpload = async (e, field) => {
       ...prev,
       [field]: url
     }));
-  } catch (err) {
-    console.error(err);
+  } catch {
     alert("Upload failed");
   } finally {
     setLoading((prev) => ({ ...prev, [field]: false }));
@@ -107,7 +107,7 @@ const handleUpload = async (e, field) => {
         ? await api.put(`/applications/${applicationId}`, payload)
         : await api.post('/applications', payload);
       setApplicationId(data._id);
-      localStorage.setItem('admission_draft_id', data._id);
+      sessionStorage.setItem('admission_draft_id', data._id);
       toast.success(`Draft saved as ${data.applicationId}`);
       return data._id;
     } catch (error) {
@@ -117,12 +117,16 @@ const handleUpload = async (e, field) => {
   }
 
   async function submit() {
+    const validation = validate(form, 4);
+    setErrors(validation);
+    if (Object.keys(validation).length) return;
+
     const id = await saveDraft();
     if (!id) return;
     try {
       await api.post(`/applications/${id}/submit`);
-      localStorage.removeItem('admission_draft');
-      localStorage.removeItem('admission_draft_id');
+      sessionStorage.removeItem('admission_draft');
+      sessionStorage.removeItem('admission_draft_id');
       setForm(initialForm);
       setApplicationId('');
       setStep(0);
@@ -233,6 +237,11 @@ const handleUpload = async (e, field) => {
             <Summary title="Pupil" rows={[['Name', form.fullName], ['DOB', form.dateOfBirth], ['Mother Tongue', form.motherTongue], ['Aadhaar', form.aadhaarNumber || 'N/A'], ['PEN', form.penNumber || 'N/A'], ['Child ID', form.childId || 'N/A']]} />
             <Summary title="Parent / Guardian" rows={[['Name', form.parent.name], ['Cell No.', form.parent.phone], ['Occupation', form.parent.occupation || 'N/A'], ['Mother Name', form.motherName || 'N/A']]} />
             <Summary title="Admission" rows={[['Class Sought', form.classApplyingFor], ['Medium', form.mediumOfInstruction || 'N/A'], ['First Language', form.firstLanguage || 'N/A'], ['Second Language', form.secondLanguage || 'N/A'], ['TC Attached', form.tcRecordAttached || 'N/A']]} />
+            <label className="flex items-start gap-3 rounded-md border border-stone-200 p-4 text-sm lg:col-span-3">
+              <input type="checkbox" className="mt-1 h-4 w-4" checked={Boolean(form.privacyConsentAccepted)} onChange={(e) => setField('privacyConsentAccepted', e.target.checked)} />
+              <span>I confirm that I am the parent or lawful guardian and consent to the school processing this admission data and uploaded documents for admission review and required school records.</span>
+            </label>
+            {errors.privacyConsentAccepted && <p className="text-sm text-red-600 lg:col-span-3">{errors.privacyConsentAccepted}</p>}
             {Object.keys(currentErrors).length > 0 && <p className="text-sm text-red-600 lg:col-span-3">Please complete required fields before final submission.</p>}
           </div>
         )}
@@ -285,6 +294,9 @@ function validate(form, step) {
   if (step === 2 || step === 4) {
     if (!form.classApplyingFor) errors.classApplyingFor = 'Class sought is required';
   }
+  if (step === 4 && !form.privacyConsentAccepted) {
+    errors.privacyConsentAccepted = 'Privacy consent is required before final submission';
+  }
   return errors;
 }
 
@@ -298,6 +310,22 @@ function normalizeDraft(draft) {
     birthCertificate: null,
     transferCertificate: null
   };
+}
+
+function readDraft() {
+  const raw = sessionStorage.getItem('admission_draft') || localStorage.getItem('admission_draft');
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    localStorage.removeItem('admission_draft');
+    localStorage.removeItem('admission_draft_id');
+    return parsed;
+  } catch {
+    sessionStorage.removeItem('admission_draft');
+    localStorage.removeItem('admission_draft');
+    localStorage.removeItem('admission_draft_id');
+    return null;
+  }
 }
 
 function toFormData(form) {

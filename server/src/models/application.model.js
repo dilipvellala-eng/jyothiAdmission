@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import mongoose from 'mongoose';
 
 const parentSchema = new mongoose.Schema(
@@ -45,6 +46,8 @@ const applicationSchema = new mongoose.Schema(
     previousSchool: { type: String, trim: true },
     address: { type: String, trim: true },
     aadhaarNumber: { type: String, trim: true, sparse: true },
+    aadhaarHash: { type: String, select: false, index: true },
+    aadhaarLast4: { type: String, select: false },
     penNumber: { type: String, trim: true },
     childId: { type: String, trim: true },
     nationalityState: { type: String, trim: true },
@@ -72,11 +75,47 @@ const applicationSchema = new mongoose.Schema(
     reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     reviewedAt: { type: Date },
     duplicateWarning: { type: Boolean, default: false },
-    duplicateMatches: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Application' }]
+    duplicateMatches: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Application' }],
+    privacyConsentAccepted: { type: Boolean, default: false },
+    privacyConsentAcceptedAt: { type: Date }
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: { transform: redactSensitiveFields },
+    toObject: { transform: redactSensitiveFields }
+  }
 );
 
 applicationSchema.index({ fullName: 'text', applicationId: 'text', 'parent.phone': 'text', 'parent.email': 'text' });
+
+applicationSchema.pre('validate', function protectAadhaar(next) {
+  if (!this.aadhaarNumber) return next();
+
+  const digits = String(this.aadhaarNumber).replace(/\D/g, '');
+  if (digits.length === 12) {
+    this.aadhaarHash = hashIdentifier(digits);
+    this.aadhaarLast4 = digits.slice(-4);
+    this.aadhaarNumber = `xxxx-xxxx-${this.aadhaarLast4}`;
+  }
+
+  next();
+});
+
+export function hashIdentifier(value) {
+  const secret = process.env.PII_HASH_SECRET || process.env.JWT_SECRET || 'dev-secret';
+  return crypto.createHmac('sha256', secret).update(String(value)).digest('hex');
+}
+
+function redactSensitiveFields(_doc, ret) {
+  delete ret.aadhaarHash;
+  delete ret.aadhaarLast4;
+  if (ret.aadhaarNumber) ret.aadhaarNumber = maskAadhaarValue(ret.aadhaarNumber);
+  return ret;
+}
+
+function maskAadhaarValue(value) {
+  const digits = String(value).replace(/\D/g, '');
+  return digits.length === 12 ? `xxxx-xxxx-${digits.slice(-4)}` : value;
+}
 
 export const Application = mongoose.model('Application', applicationSchema);

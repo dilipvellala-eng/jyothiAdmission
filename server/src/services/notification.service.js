@@ -7,7 +7,7 @@ function hasSmtpConfig() {
 async function sendEmail(to, subject, text) {
   if (!to) return;
   if (!hasSmtpConfig()) {
-    console.log(`[email skipped] ${to}: ${subject}`);
+    console.log(`[email skipped] ${redactEmail(to)}: ${subject}`);
     return;
   }
 
@@ -28,7 +28,7 @@ async function sendEmail(to, subject, text) {
 
 async function sendSms(phone, message) {
   if (!phone) return;
-  console.log(`[sms:${process.env.SMS_PROVIDER || 'log'}] ${phone}: ${message}`);
+  console.log(`[sms:${process.env.SMS_PROVIDER || 'log'}] ${redactPhone(phone)}: ${message}`);
 }
 
 export async function notifySubmission(application) {
@@ -45,4 +45,15 @@ export async function notifyStatusChange(application) {
     sendEmail(application.parent.email, 'Admission application status updated', message),
     sendSms(application.parent.phone, message)
   ]);
+}
+
+function redactEmail(email) {
+  const [name, domain] = String(email).split('@');
+  if (!name || !domain) return 'REDACTED';
+  return `${name.slice(0, 2)}***@${domain}`;
+}
+
+function redactPhone(phone) {
+  const digits = String(phone).replace(/\D/g, '');
+  return digits.length > 4 ? `xxxxxx${digits.slice(-4)}` : 'REDACTED';
 }

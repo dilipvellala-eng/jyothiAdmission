@@ -1,46 +1,48 @@
-import express from "express";
-import { upload } from "../middleware/upload.middleware.js";
-import cloudinary from "../config/cloudinary.js";
+import express from 'express';
+import cloudinary from '../config/cloudinary.js';
+import { protect } from '../middleware/auth.middleware.js';
+import { upload } from '../middleware/upload.middleware.js';
 
 const router = express.Router();
 
-router.post("/", upload.single("file"), async (req, res) => {
-  try {
-    console.log("Uploaded file:", req.file);
+router.use(protect);
 
-    // ❌ No file
+router.post('/', upload.single('file'), async (req, res) => {
+  try {
     if (!req.file) {
       return res.status(400).json({
         message: "No file uploaded. Please send file with key 'file'"
       });
     }
 
-    // ✅ Upload to Cloudinary using buffer
     const result = await new Promise((resolve, reject) => {
-      cloudinary.uploader.upload_stream(
-        {
-          folder: "certificates",
-          resource_type: "auto"
-        },
-        (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
-        }
-      ).end(req.file.buffer); // 👈 IMPORTANT
+      cloudinary.uploader
+        .upload_stream(
+          {
+            folder: 'certificates',
+            resource_type: 'auto',
+            use_filename: false,
+            unique_filename: true,
+            context: {
+              uploaded_by: String(req.user._id),
+              purpose: 'admission_document'
+            }
+          },
+          (error, uploadResult) => {
+            if (error) reject(error);
+            else resolve(uploadResult);
+          }
+        )
+        .end(req.file.buffer);
     });
 
-    // ✅ Success
     res.json({
-      message: "File uploaded successfully",
+      message: 'File uploaded successfully',
       fileUrl: result.secure_url
     });
-
-  } catch (error) {
-    console.error("Upload error:", error);
-
+  } catch {
     res.status(500).json({
-      message: "Upload failed",
-      error: error.message
+      message: 'Upload failed'
     });
   }
 });

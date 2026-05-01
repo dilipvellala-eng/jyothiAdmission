@@ -11,8 +11,19 @@ import { notifyStatusChange, notifySubmission } from '../services/notification.s
 function parsePayload(req) {
   const body = { ...req.body };
   if (typeof body.parent === 'string') body.parent = JSON.parse(body.parent);
+  body.documents = typeof body.documents === 'object' && body.documents !== null ? body.documents : {};
+  for (const field of ['photo', 'birthCertificate', 'transferCertificate']) {
+    if (typeof body[field] === 'string' && body[field]) {
+      body.documents[field] = body[field];
+    }
+    delete body[field];
+  }
   for (const field of ['dateOfAdmission']) {
     if (body[field] === '') delete body[field];
+  }
+  if (body.privacyConsentAccepted === 'true' || body.privacyConsentAccepted === true) {
+    body.privacyConsentAccepted = true;
+    body.privacyConsentAcceptedAt = new Date();
   }
   return body;
 }
@@ -89,6 +100,9 @@ export const submitApplication = asyncHandler(async (req, res) => {
   if (!application) throw new ApiError(404, 'Application not found');
   if (String(application.user) !== String(req.user._id)) throw new ApiError(403, 'Access denied');
   if (application.status !== 'Draft') throw new ApiError(400, 'Only draft applications can be submitted');
+  if (!application.privacyConsentAccepted) {
+    throw new ApiError(400, 'Privacy consent is required before submitting the application');
+  }
 
   application.status = 'Pending';
   application.submittedAt = new Date();
@@ -125,7 +139,7 @@ export const reviewApplication = asyncHandler(async (req, res) => {
 export const exportApplications = asyncHandler(async (req, res) => {
   const applications = await Application.find({ status: { $ne: 'Draft' } }).sort({ createdAt: -1 });
   res.header('Content-Type', 'text/csv');
-  res.attachment('admission-applications.csv');
+  res.attachment('admission-applications-redacted.csv');
   res.send(applicationsToCsv(applications));
 });
 

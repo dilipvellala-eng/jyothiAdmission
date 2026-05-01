@@ -26,7 +26,7 @@ export function buildApplicationPdf(application, writable) {
     ['Name of the Pupil', application.fullName],
     ['Mother Tongue', application.motherTongue],
     ['Date of Birth', formatDate(application.dateOfBirth)],
-    ['Aadhaar No.', application.aadhaarNumber],
+    ['Aadhaar No.', maskAadhaar(application.aadhaarNumber)],
     ['PEN No.', application.penNumber],
     ['Child ID', application.childId],
     ['Nationality and State', application.nationalityState],
@@ -156,4 +156,10 @@ function value(input) {
 function formatDate(date) {
   if (!date) return '';
   return new Date(date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function maskAadhaar(input) {
+  if (!input) return input;
+  const digits = String(input).replace(/\D/g, '');
+  return digits.length === 12 ? `xxxx-xxxx-${digits.slice(-4)}` : input;
 }

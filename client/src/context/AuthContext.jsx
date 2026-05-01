@@ -5,8 +5,20 @@ const AuthContext = createContext(null);
 
 function readSavedUser() {
   try {
-    return JSON.parse(localStorage.getItem('admission_user') || 'null');
+    const raw = sessionStorage.getItem('admission_user') || localStorage.getItem('admission_user');
+    if (!raw) return null;
+    const user = JSON.parse(raw);
+    const token = sessionStorage.getItem('admission_token') || localStorage.getItem('admission_token');
+    if (token) {
+      sessionStorage.setItem('admission_token', token);
+      sessionStorage.setItem('admission_user', JSON.stringify(user));
+    }
+    localStorage.removeItem('admission_user');
+    localStorage.removeItem('admission_token');
+    return user;
   } catch {
+    sessionStorage.removeItem('admission_user');
+    sessionStorage.removeItem('admission_token');
     localStorage.removeItem('admission_user');
     localStorage.removeItem('admission_token');
     return null;
@@ -18,19 +30,19 @@ export function AuthProvider({ children }) {
 
   async function login(email, password) {
     const { data } = await api.post('/auth/login', { email, password });
-    localStorage.setItem('admission_token', data.token);
-    localStorage.setItem('admission_user', JSON.stringify(data.user));
+    saveSession(data);
     setUser(data.user);
   }
 
   async function register(payload) {
     const { data } = await api.post('/auth/register', payload);
-    localStorage.setItem('admission_token', data.token);
-    localStorage.setItem('admission_user', JSON.stringify(data.user));
+    saveSession(data);
     setUser(data.user);
   }
 
   function logout() {
+    sessionStorage.removeItem('admission_token');
+    sessionStorage.removeItem('admission_user');
     localStorage.removeItem('admission_token');
     localStorage.removeItem('admission_user');
     setUser(null);
@@ -42,4 +54,11 @@ export function AuthProvider({ children }) {
 
 export function useAuth() {
   return useContext(AuthContext);
+}
+
+function saveSession(data) {
+  sessionStorage.setItem('admission_token', data.token);
+  sessionStorage.setItem('admission_user', JSON.stringify(data.user));
+  localStorage.removeItem('admission_token');
+  localStorage.removeItem('admission_user');
 }

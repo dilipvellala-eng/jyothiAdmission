@@ -1,8 +1,16 @@
-import { Application } from '../models/application.model.js';
+import { Application, hashIdentifier } from '../models/application.model.js';
 
 export async function findDuplicateApplications(payload, currentId) {
   const filters = [];
-  if (payload.aadhaarNumber) filters.push({ aadhaarNumber: payload.aadhaarNumber });
+  if (payload.aadhaarNumber) {
+    const digits = String(payload.aadhaarNumber).replace(/\D/g, '');
+    if (digits.length === 12) {
+      filters.push({ aadhaarHash: hashIdentifier(digits) });
+      filters.push({ aadhaarNumber: payload.aadhaarNumber });
+    } else {
+      filters.push({ aadhaarNumber: payload.aadhaarNumber });
+    }
+  }
   if (payload.fullName && payload.dateOfBirth && payload.parent?.phone) {
     filters.push({
       fullName: new RegExp(`^${escapeRegex(payload.fullName)}$`, 'i'),

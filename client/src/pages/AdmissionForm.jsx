@@ -70,11 +70,11 @@ const handleUpload = async (e, field) => {
   setLoading((prev) => ({ ...prev, [field]: true }));
 
   try {
-    const url = await uploadFile(file);
+    const document = await uploadFile(file);
 
     setForm((prev) => ({
       ...prev,
-      [field]: url
+      [field]: document
     }));
   } catch {
     alert("Upload failed");
@@ -209,7 +209,7 @@ const handleUpload = async (e, field) => {
       <label className="label">Photo</label>
       <input type="file" className="field" accept=".jpg,.jpeg,.png,.pdf" onChange={(e) => handleUpload(e, "photo")} />
       {loading.photo && <p>Uploading...</p>}
-      {form.photo && <img src={form.photo} width="100" />}
+      {form.photo && <img src={documentUrl(form.photo)} width="100" />}
     </div>
 
     {/* Birth Certificate */}
@@ -218,7 +218,7 @@ const handleUpload = async (e, field) => {
       <input type="file" className="field" accept=".jpg,.jpeg,.png,.pdf" onChange={(e) => handleUpload(e, "birthCertificate")} />
       {loading.birthCertificate && <p>Uploading...</p>}
       {form.birthCertificate && (
-        <a href={form.birthCertificate} target="_blank" rel="noopener noreferrer">View</a>
+        <a href={documentUrl(form.birthCertificate)} target="_blank" rel="noopener noreferrer">View</a>
       )}
     </div>
 
@@ -228,7 +228,7 @@ const handleUpload = async (e, field) => {
       <input type="file" className="field" accept=".jpg,.jpeg,.png,.pdf" onChange={(e) => handleUpload(e, "transferCertificate")} />
       {loading.transferCertificate && <p>Uploading...</p>}
       {form.transferCertificate && (
-        <a href={form.transferCertificate} target="_blank" rel="noopener noreferrer">View</a>
+        <a href={documentUrl(form.transferCertificate)} target="_blank" rel="noopener noreferrer">View</a>
       )}
     </div>
 
@@ -336,7 +336,7 @@ function toFormData(form) {
   const data = new FormData();
   for (const [key, value] of Object.entries(form)) {
     if (['photo', 'birthCertificate', 'transferCertificate'].includes(key)) {
-      if (value) data.append(key, value);
+      if (value) data.append(key, JSON.stringify(stripTransientDocumentFields(value)));
     } else if (key === 'parent') {
       data.append('parent', JSON.stringify(value));
     } else {
@@ -344,4 +344,15 @@ function toFormData(form) {
     }
   }
   return data;
+}
+
+function documentUrl(document) {
+  if (!document) return '';
+  return typeof document === 'string' ? document : document.signedUrl || '';
+}
+
+function stripTransientDocumentFields(document) {
+  if (!document || typeof document === 'string') return document;
+  const { publicId, resourceType, format, originalName, bytes, deliveryType, uploadedAt } = document;
+  return { publicId, resourceType, format, originalName, bytes, deliveryType, uploadedAt };
 }

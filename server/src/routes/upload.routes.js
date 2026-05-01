@@ -2,6 +2,7 @@ import express from 'express';
 import cloudinary from '../config/cloudinary.js';
 import { protect } from '../middleware/auth.middleware.js';
 import { upload } from '../middleware/upload.middleware.js';
+import { buildSignedDocumentUrl, buildStoredDocument } from '../services/document.service.js';
 
 const router = express.Router();
 
@@ -21,6 +22,7 @@ router.post('/', upload.single('file'), async (req, res) => {
           {
             folder: 'certificates',
             resource_type: 'auto',
+            type: 'authenticated',
             use_filename: false,
             unique_filename: true,
             context: {
@@ -36,9 +38,12 @@ router.post('/', upload.single('file'), async (req, res) => {
         .end(req.file.buffer);
     });
 
+    const file = buildStoredDocument(result, req.file);
+
     res.json({
       message: 'File uploaded successfully',
-      fileUrl: result.secure_url
+      file,
+      signedUrl: buildSignedDocumentUrl(file)
     });
   } catch {
     res.status(500).json({

@@ -10,5 +10,5 @@ export const uploadFile = async (file) => {
     }
   });
 
-  return res.data.fileUrl;
+  return { ...res.data.file, signedUrl: res.data.signedUrl };
 };

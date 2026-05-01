@@ -4,6 +4,7 @@ import {
   createApplication,
   downloadApplicationPdf,
   exportApplications,
+  getApplicationDocumentUrl,
   getApplication,
   listApplications,
   reviewApplication,
@@ -32,6 +33,7 @@ router.use(protect);
 router.get('/', listApplications);
 router.get('/export.csv', authorize('admin', 'staff'), exportApplications);
 router.post('/', uploadFields, applicationValidation, validate, createApplication);
+router.get('/:id/documents/:field', getApplicationDocumentUrl);
 router.get('/:id', getApplication);
 router.put('/:id', uploadFields, applicationValidation, validate, updateApplication);
 router.post('/:id/submit', submitApplication);

@@ -4,6 +4,7 @@ import { ApiError } from '../utils/apiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { applicationsToCsv } from '../services/export.service.js';
 import { buildApplicationPdf } from '../services/pdf.service.js';
+import { buildSignedDocumentUrl, stripTransientDocumentFields } from '../services/document.service.js';
 import { findDuplicateApplications } from '../services/duplicate.service.js';
 import { generateApplicationId } from '../services/applicationId.service.js';
 import { notifyStatusChange, notifySubmission } from '../services/notification.service.js';
@@ -15,9 +16,10 @@ function parsePayload(req) {
   body.documents = typeof body.documents === 'object' && body.documents !== null ? body.documents : {};
   for (const field of ['photo', 'birthCertificate', 'transferCertificate']) {
     if (typeof body[field] === 'string' && body[field]) {
-      body.documents[field] = body[field];
+      body.documents[field] = parseDocumentPayload(body[field]);
     }
     delete body[field];
+    if (body.documents[field]) body.documents[field] = stripTransientDocumentFields(body.documents[field]);
   }
   for (const field of ['dateOfAdmission']) {
     if (body[field] === '') delete body[field];
@@ -32,7 +34,7 @@ function parsePayload(req) {
 function attachFiles(payload, files = {}) {
   payload.documents = payload.documents || {};
   for (const [field, list] of Object.entries(files)) {
-    if (list?.[0]) payload.documents[field] = `/uploads/${list[0].filename}`;
+    if (list?.[0]?.filename) payload.documents[field] = `/uploads/${list[0].filename}`;
   }
   return payload;
 }
@@ -157,6 +159,21 @@ export const downloadApplicationPdf = asyncHandler(async (req, res) => {
   buildApplicationPdf(application, res);
 });
 
+export const getApplicationDocumentUrl = asyncHandler(async (req, res) => {
+  const { field } = req.params;
+  if (!['photo', 'birthCertificate', 'transferCertificate'].includes(field)) {
+    throw new ApiError(404, 'Document not found');
+  }
+
+  const application = await Application.findById(req.params.id);
+  if (!application) throw new ApiError(404, 'Application not found');
+  if (!canAccessApplication(req.user, application)) throw new ApiError(403, 'Access denied');
+
+  const url = buildSignedDocumentUrl(application.documents?.[field]);
+  if (!url) throw new ApiError(404, 'Document not found');
+  res.json({ url });
+});
+
 function normalizeAdmissionYear(rawYear, rawDate) {
   const currentYear = new Date().getFullYear();
   const fromDate = rawDate ? new Date(rawDate).getFullYear() : currentYear;
@@ -165,4 +182,12 @@ function normalizeAdmissionYear(rawYear, rawDate) {
     throw new ApiError(400, 'Admission year must be a valid year');
   }
   return year;
+}
+
+function parseDocumentPayload(value) {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
 }

@@ -14,9 +14,9 @@ const parentSchema = new mongoose.Schema(
 
 const documentSchema = new mongoose.Schema(
   {
-    photo: { type: String },
-    birthCertificate: { type: String },
-    transferCertificate: { type: String }
+    photo: { type: mongoose.Schema.Types.Mixed },
+    birthCertificate: { type: mongoose.Schema.Types.Mixed },
+    transferCertificate: { type: mongoose.Schema.Types.Mixed }
   },
   { _id: false }
 );

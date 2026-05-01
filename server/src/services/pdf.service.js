@@ -161,5 +161,6 @@ function formatDate(date) {
 function maskAadhaar(input) {
   if (!input) return input;
   const digits = String(input).replace(/\D/g, '');
-  return digits.length === 12 ? `xxxx-xxxx-${digits.slice(-4)}` : input;
+  if (digits.length >= 4) return `xxxx-xxxx-${digits.slice(-4)}`;
+  return 'xxxx-xxxx-xxxx';
 }
